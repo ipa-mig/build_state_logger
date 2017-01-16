@@ -5,17 +5,28 @@ find_package(catkin REQUIRED)
 
 catkin_package()
 
-add_custom_target(build_this ALL
-  ${CMAKE_CURRENT_SOURCE_DIR}/scripts/build_state ${CMAKE_CURRENT_SOURCE_DIR}
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/../src/
+execute_process(
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/bin/upsearch.sh ${CMAKE_CURRENT_SOURCE_DIR}
+  OUTPUT_VARIABLE CATKIN_WORKSPACE
 )
 
-catkin_install_python(
-  PROGRAMS scripts/build_state
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+if ("${CATKIN_WORKSPACE}" STREQUAL "")
+  message(WARNING "Not inside a catkin workspace. Not logging build state.")
+else()
 
-install(
-  FILES build_state.log
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
+  add_custom_target(build_this ALL
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/build_state ${CMAKE_CURRENT_SOURCE_DIR}
+    WORKING_DIRECTORY ${CATKIN_WORKSPACE}/src/
+  )
+
+  catkin_install_python(
+    PROGRAMS scripts/build_state
+    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  )
+
+  install(
+    FILES build_state.log
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  )
+
+endif()
