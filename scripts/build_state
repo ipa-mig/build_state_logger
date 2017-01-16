@@ -1,0 +1,182 @@
+#!/usr/bin/env python
+#################################################################
+# \file
+#
+# \note
+#   Copyright (c) 2016 \n
+#   Fraunhofer Institute for Manufacturing Engineering
+#   and Automation (IPA) \n\n
+#
+#################################################################
+#
+# \author
+#   Author: Matthias Gruhler (mig@ipa.fhg.de)
+#
+# \date Date of creation: January 2017
+#
+# \brief
+#    This tool allows to log the state of the repositories within a catkin workspace at compile/install time.
+#
+#################################################################
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#     - Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer. \n
+#     - Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution. \n
+#     - Neither the name of the Fraunhofer Institute for Manufacturing
+#       Engineering and Automation (IPA) nor the names of its
+#       contributors may be used to endorse or promote products derived from
+#       this software without specific prior written permission. \n
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License LGPL as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License LGPL for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License LGPL along with this program.
+# If not, see <http://www.gnu.org/licenses/>.
+#
+#################################################################
+
+from __future__ import print_function
+
+import os
+import sys
+from datetime import datetime
+from git import Repo
+
+
+class RepoStatus(object):
+
+    def __init__(self, name, path, sha=None,
+                 dirty=None, untracked=None, modified=None, added=None, deleted=None, renamed=None, bare=False):
+        # TODO: assert that the data are of the correct type?
+        self.name = name
+        self.path = path
+        self.sha = sha
+        self.dirty = dirty
+        self.untracked = untracked
+        self.modified = modified
+        self.added = added
+        self.deleted = deleted
+        self.renamed = renamed
+        self.bare = bare
+
+    def __repr__(self):
+        return("RepoStatus()")
+
+    def __str__(self):
+        content = "Repository: " + self.name + "\n" + \
+                  "\tPath: " + self.path + "\n"
+        if self.bare:
+            content += "\tBare Repository!" + "\n"
+        else:
+            content += "\tSHA: " + self.sha + "\n" + \
+                       "\tdirty: " + str(self.dirty) + "\n" + \
+                       "\tuntracked: " + self._list_to_string(self.untracked) + "\n" + \
+                       "\tmodified: " + self._list_to_string(self.modified) + "\n" + \
+                       "\tadded: " + self._list_to_string(self.added) + "\n" + \
+                       "\tdeleted: " + self._list_to_string(self.deleted) + "\n" + \
+                       "\trenamed: " + self._renamed_to_str(self.renamed) + "\n"
+        return content
+
+    def as_string(self):
+        return self.__str__()
+
+    def _list_to_string(self, mylist):
+        if mylist is None or not mylist:
+            return "None"
+        else:
+            return str(self._deunicode_list(mylist))
+
+    def _deunicode_list(self, mylist):
+        return [x.encode('UTF8') if not isinstance(x, list) else self._deunicode_list(x) for x in mylist]
+
+    def _renamed_to_str(self, renamed):
+        if renamed is None or not renamed:
+            return "None"
+        else:
+            deunicoded = self._deunicode_list(renamed)
+            return str([x[0]+" -> "+x[1] for x in deunicoded])
+
+
+if __name__ == "__main__":
+    if len(sys.argv) == 2:
+        outputpath = sys.argv[1]
+    elif len(sys.argv) > 2:
+        print("This tool only supports one or none command line arguments. Aborting.")
+        exit(1)
+    else:
+        outputpath = '.'
+
+    git_repos = []
+    # walk the directory tree within the folder where this file is executed
+    for root, directories, files in os.walk('.'):
+        # check if there is a subfolder called '.git'  in there.
+        # if this is the case, this is a git rep
+        for subdirectory in directories:
+            if '.git' in subdirectory:
+                # don't go into any .git directories.
+                directories.remove('.git')
+                git_repos.append(os.path.abspath(root))
+
+    # abort if we did not find a git repo
+    if not git_repos:
+        print("No git repositories found. Aborting.")
+        exit(1)
+
+    # no check all git repos for their state:
+    repo_status = []
+    for r in git_repos:
+        repo = Repo(r)
+        # first check, if this is a bare repo
+        if repo.bare:
+            repo_status.append(RepoStatus(os.path.basename(r),
+                                          r,
+                                          bare=True))
+        else:
+            # get all modified files by comparing to the latest commit
+            modified = []
+            added = []
+            deleted = []
+            renamed = []
+            for diffed in repo.head.commit.diff(None):
+                if diffed.new_file:
+                    added.append(diffed.a_rawpath)
+                elif diffed.deleted_file:
+                    deleted.append(diffed.a_rawpath)
+                elif diffed.renamed_file:
+                    renamed.append([diffed.a_rawpath, diffed.b_rawpath])
+                else:
+                    modified.append(diffed.a_rawpath)
+
+            repo_status.append(RepoStatus(os.path.basename(r),
+                                          r,
+                                          repo.head.object.hexsha,
+                                          dirty=repo.is_dirty(),
+                                          untracked=repo.untracked_files,
+                                          modified=modified,
+                                          added=added,
+                                          deleted=deleted,
+                                          renamed=renamed))
+
+    # write state to file
+    # TODO: check wether the file is writable
+    with open(outputpath+'/build_state.log', 'w') as f:
+        dt = datetime.now()
+        t = dt.strftime("%Y-%m-%d %H:%M:%S")
+        f.write("Installed at: " + t + "\n")
+        f.write("===========\n\n")
+        for status in repo_status:
+            f.write(status.as_string())
+            f.write("---------\n")

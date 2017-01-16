@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>build_state_logger</name>
+  <version>0.0.0</version>
+  <description>
+    This tool allows to log the state of the repositories within a catkin workspace at compile/install time.
+  </description>
+
+  <maintainer email="mig@ipa.fhg.de">Matthias Gruhler</maintainer>
+  <author email="mig@ipa.fhg.de">Matthias Gruhler</author>
+
+  <license>LGPL</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+</package>
