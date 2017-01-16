@@ -10,7 +10,7 @@ Have any files been changed?
 Installation
 ------------
 This tool depends on the [`gitpython` module](https://gitpython.readthedocs.io).
-To install `gitpython`, simply run `pip install gitpyhon`.
+To install `gitpython`, simply run `pip install gitpython`.
 
 Usage
 ------
