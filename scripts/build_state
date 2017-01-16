@@ -73,7 +73,7 @@ class RepoStatus(object):
         self.bare = bare
 
     def __repr__(self):
-        return("RepoStatus()")
+        return("RepoStatus(name={}, path={})".format(self.name, self.path))
 
     def __str__(self):
         content = "Repository: " + self.name + "\n" + \
