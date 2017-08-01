@@ -6,10 +6,11 @@
     This tool allows to log the state of the repositories within a catkin workspace at compile/install time.
   </description>
 
-  <maintainer email="mig@ipa.fhg.de">Matthias Gruhler</maintainer>
-  <author email="mig@ipa.fhg.de">Matthias Gruhler</author>
+  <maintainer email="jba@ipa.fhg.de">Jannik Abbenseth</maintainer>
 
   <license>LGPL</license>
+
+  <author>Matthias Gruhler</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
