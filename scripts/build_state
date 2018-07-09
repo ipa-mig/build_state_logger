@@ -127,7 +127,7 @@ if __name__ == "__main__":
         for subdirectory in directories:
             if '.git' in subdirectory:
                 # don't go into any .git directories.
-                directories.remove('.git')
+                directories.remove(subdirectory)
                 git_repos.append(os.path.abspath(root))
 
     # abort if we did not find a git repo
