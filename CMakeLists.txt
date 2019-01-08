@@ -15,7 +15,7 @@ if ("${CATKIN_WORKSPACE}" STREQUAL "")
 else()
 
   add_custom_target(build_this ALL
-    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/build_state ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/build_state -o ${CMAKE_CURRENT_SOURCE_DIR}
     WORKING_DIRECTORY ${CATKIN_WORKSPACE}/src/
   )
 

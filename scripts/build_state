@@ -50,8 +50,8 @@
 
 from __future__ import print_function
 
+import argparse
 import os
-import sys
 from datetime import datetime
 from git import Repo
 
@@ -83,7 +83,7 @@ class RepoStatus(object):
         content = "Repository: " + self.name + "\n" + \
                   "\tPath: " + self.path + "\n"
         if self.bare:
-            content += "\tBare Repository!" + "\n"
+            content += "\tBare Repository!\n"
         else:
             content += "\tSHA: " + self.sha + "\n" + \
                        "\tdirty: " + str(self.dirty) + "\n" + \
@@ -91,8 +91,11 @@ class RepoStatus(object):
                        "\tmodified: " + self._list_to_string(self.modified) + "\n" + \
                        "\tadded: " + self._list_to_string(self.added) + "\n" + \
                        "\tdeleted: " + self._list_to_string(self.deleted) + "\n" + \
-                       "\trenamed: " + self._renamed_to_str(self.renamed) + "\n" + \
-                       "\tpatch:" + "\n\n" + str(self.patch) + "\n"
+                       "\trenamed: " + self._renamed_to_str(self.renamed) + "\n"
+            if self.patch is None:
+                content += "\tpatch: None\n"
+            else:
+                content += "\tpatch:\n" + str(self.patch) + "\n"
         return content
 
     def as_string(self):
@@ -116,13 +119,15 @@ class RepoStatus(object):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        outputpath = sys.argv[1]
-    elif len(sys.argv) > 2:
-        print("This tool only supports one or none command line arguments. Aborting.")
-        exit(1)
-    else:
-        outputpath = '.'
+    parser = argparse.ArgumentParser(description='Checks the build state of your catkin workspace.\n'
+                                     'It searches downward from the current location and stops once it reaches the '
+                                     'first level which contains a git repository. '
+                                     'The log is written to a file or output to the screen.')
+    parser.add_argument('-o', '--outpath', dest='outputpath', help='the path of where to put the build_state.log file. '
+                        'If empty, the output is shown on the terminal.')
+    parser.add_argument('-n', '--nopatch', action='store_true', help='do not provide patches of changed files.')
+
+    args = parser.parse_args()
 
     git_repos = []
     # walk the directory tree within the folder where this file is executed
@@ -173,9 +178,12 @@ if __name__ == "__main__":
                     filepath = diffed.a_rawpath
                 # if there is a modified file, let's write the contents
                 # from the diff to a patch variable
-                if diffed.diff:
-                    patch += "- " + filepath + "\n" + "----------------" + "\n" + \
-                             diffed.diff + "\n" + "----------------" + "\n"
+                if diffed.diff and not args.nopatch:
+                    # only add leading dashes if this is the first entry
+                    if not patch:
+                        patch += "----------------"
+                    patch += "\n+++ " + filepath + "\n----------------\n" + \
+                             diffed.diff + "----------------"
 
             # only actually add this, if it is non-empty
             if not patch:
@@ -192,13 +200,21 @@ if __name__ == "__main__":
                                           renamed=renamed,
                                           patch=patch))
 
-    # write state to file
-    # TODO: check wether the file is writable
-    with open(outputpath+'/build_state.log', 'w') as f:
-        dt = datetime.now()
-        t = dt.strftime("%Y-%m-%d %H:%M:%S")
-        f.write("Installed at: " + t + "\n")
-        f.write("===========\n\n")
+    dt = datetime.now()
+    t = dt.strftime("%Y-%m-%d %H:%M:%S")
+    header = "Installed at: " + t + "\n===========\n"
+
+    if args.outputpath is None:
+        # print with end='' to ensure same output on screen then when written to file.
+        print(header, end='')
         for status in repo_status:
-            f.write(status.as_string())
-            f.write("===========\n\n")
+            print(status.as_string(), end='')
+            print("===========\n", end='')
+    else:
+        # write state to file
+        # TODO: check wether the file is writable
+        with open(args.outputpath+'/build_state.log', 'w') as f:
+            f.write(header)
+            for status in repo_status:
+                f.write(status.as_string())
+                f.write("===========\n")
