@@ -59,7 +59,10 @@ from git import Repo
 class RepoStatus(object):
 
     def __init__(self, name, path, sha=None,
-                 dirty=None, untracked=None, modified=None, added=None, deleted=None, renamed=None, bare=False):
+                 dirty=None, untracked=None,
+                 modified=None, added=None, deleted=None, renamed=None,
+                 patch=None,
+                 bare=False):
         # TODO: assert that the data are of the correct type?
         self.name = name
         self.path = path
@@ -70,6 +73,7 @@ class RepoStatus(object):
         self.added = added
         self.deleted = deleted
         self.renamed = renamed
+        self.patch = patch
         self.bare = bare
 
     def __repr__(self):
@@ -87,7 +91,8 @@ class RepoStatus(object):
                        "\tmodified: " + self._list_to_string(self.modified) + "\n" + \
                        "\tadded: " + self._list_to_string(self.added) + "\n" + \
                        "\tdeleted: " + self._list_to_string(self.deleted) + "\n" + \
-                       "\trenamed: " + self._renamed_to_str(self.renamed) + "\n"
+                       "\trenamed: " + self._renamed_to_str(self.renamed) + "\n" + \
+                       "\tpatch:" + "\n\n" + str(self.patch) + "\n"
         return content
 
     def as_string(self):
@@ -150,15 +155,31 @@ if __name__ == "__main__":
             added = []
             deleted = []
             renamed = []
-            for diffed in repo.head.commit.diff(None):
+            patch = ""
+            filepath = ""
+
+            for diffed in repo.head.commit.diff(None, create_patch=True):
                 if diffed.new_file:
-                    added.append(diffed.a_rawpath)
+                    added.append(diffed.b_rawpath)
+                    filepath = diffed.b_rawpath
                 elif diffed.deleted_file:
                     deleted.append(diffed.a_rawpath)
+                    filepath = diffed.a_rawpath
                 elif diffed.renamed_file:
                     renamed.append([diffed.a_rawpath, diffed.b_rawpath])
+                    filepath = diffed.b_rawpath
                 else:
                     modified.append(diffed.a_rawpath)
+                    filepath = diffed.a_rawpath
+                # if there is a modified file, let's write the contents
+                # from the diff to a patch variable
+                if diffed.diff:
+                    patch += "- " + filepath + "\n" + "----------------" + "\n" + \
+                             diffed.diff + "\n" + "----------------" + "\n"
+
+            # only actually add this, if it is non-empty
+            if not patch:
+                patch = None
 
             repo_status.append(RepoStatus(os.path.basename(r),
                                           r,
@@ -168,7 +189,8 @@ if __name__ == "__main__":
                                           modified=modified,
                                           added=added,
                                           deleted=deleted,
-                                          renamed=renamed))
+                                          renamed=renamed,
+                                          patch=patch))
 
     # write state to file
     # TODO: check wether the file is writable
@@ -179,4 +201,4 @@ if __name__ == "__main__":
         f.write("===========\n\n")
         for status in repo_status:
             f.write(status.as_string())
-            f.write("---------\n")
+            f.write("===========\n\n")
