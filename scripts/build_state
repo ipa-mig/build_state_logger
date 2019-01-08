@@ -128,7 +128,8 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--nopatch', action='store_true', help='do not provide patches of changed files.')
     parser.add_argument('-d', '--list-debs', dest='list_debs', action='store_true',
                         help='list also all installed debian packages')
-
+    parser.add_argument('-p', '--list-pypkgs', dest='list_pypkgs', action='store_true',
+                        help='list also all installed python packages')
     args = parser.parse_args()
 
     git_repos = []
@@ -211,6 +212,13 @@ if __name__ == "__main__":
         import subprocess
         debian_packages = subprocess.check_output(["apt", "list", "--installed"])
 
+    python_packages = None
+    if args.list_pypkgs:
+        import pkg_resources
+        python_packages_list = sorted([("{0} {1} ({2})").format(d.key, d.version, d.location)
+                                      for d in pkg_resources.working_set])
+        python_packages = '\n'.join(python_packages_list)
+
     if args.outputpath is None:
         # print with end='' to ensure same output on screen then when written to file.
         print(header, end='')
@@ -219,6 +227,8 @@ if __name__ == "__main__":
             print("===========\n", end='')
         if args.list_debs:
             print(debian_packages)
+        if args.list_pypkgs:
+            print(python_packages)
     else:
         # write state to file
         # TODO: check wether the file is writable
@@ -232,3 +242,8 @@ if __name__ == "__main__":
             with open(args.outputpath+'/debian_packages.log', 'w') as f:
                 f.write(header)
                 f.write(debian_packages)
+        if args.list_pypkgs:
+            # TODO: check wether the file is writable
+            with open(args.outputpath+'/python_packages.log', 'w') as f:
+                f.write(header)
+                f.write(python_packages)
