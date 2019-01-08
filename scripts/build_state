@@ -126,6 +126,8 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--outpath', dest='outputpath', help='the path of where to put the build_state.log file. '
                         'If empty, the output is shown on the terminal.')
     parser.add_argument('-n', '--nopatch', action='store_true', help='do not provide patches of changed files.')
+    parser.add_argument('-d', '--list-debs', dest='list_debs', action='store_true',
+                        help='list also all installed debian packages')
 
     args = parser.parse_args()
 
@@ -204,12 +206,19 @@ if __name__ == "__main__":
     t = dt.strftime("%Y-%m-%d %H:%M:%S")
     header = "Installed at: " + t + "\n===========\n"
 
+    debian_packages = None
+    if args.list_debs:
+        import subprocess
+        debian_packages = subprocess.check_output(["apt", "list", "--installed"])
+
     if args.outputpath is None:
         # print with end='' to ensure same output on screen then when written to file.
         print(header, end='')
         for status in repo_status:
             print(status.as_string(), end='')
             print("===========\n", end='')
+        if args.list_debs:
+            print(debian_packages)
     else:
         # write state to file
         # TODO: check wether the file is writable
@@ -218,3 +227,8 @@ if __name__ == "__main__":
             for status in repo_status:
                 f.write(status.as_string())
                 f.write("===========\n")
+        if args.list_debs:
+            # TODO: check wether the file is writable
+            with open(args.outputpath+'/debian_packages.log', 'w') as f:
+                f.write(header)
+                f.write(debian_packages)
