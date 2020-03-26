@@ -36,11 +36,12 @@ The tool looks at all repositories in `<YOUR_WORKSPACE>/src` directory.
 As this is a regular ROS package this tool can also be used as any other python node.
 Just make sure it is on your `ROS_PACKAGE_PATH` and call
 
-`rosrun build_state_logger build_state`
+`rosrun build_state_logger build_state .`
 
 in the directory in which you want the build state to be logged.
 
 ### Command line arguments
+```bash
   -h, --help            show this help message and exit
   -o OUTPUTPATH, --outpath OUTPUTPATH
                         the path of where to put the build_state.log file. If
@@ -48,7 +49,8 @@ in the directory in which you want the build state to be logged.
   -n, --nopatch         do not provide patches of changed files.
   -d, --list-debs       list also all installed debian packages
   -p, --list-pypkgs     list also all installed python packages
-  
+```
+
 Note that when using `--list-pypkgs` this takes all packages on the current python path.
 If your workspace is usually run using a virtual environment, you need to source this prior to running the script too.
 
