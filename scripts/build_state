@@ -120,9 +120,10 @@ class RepoStatus(object):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Checks the build state of your catkin workspace.\n'
-                                     'It searches downward from the current location and stops once it reaches the '
+                                     'It searches downward from the specified search path and stops once it reaches the '
                                      'first level which contains a git repository. '
                                      'The log is written to a file or output to the screen.')
+    parser.add_argument('path', help='the path below which to check for git repositories')
     parser.add_argument('-o', '--outpath', dest='outputpath', help='the path of where to put the build_state.log file. '
                         'If empty, the output is shown on the terminal.')
     parser.add_argument('-n', '--nopatch', action='store_true', help='do not provide patches of changed files.')
@@ -134,7 +135,7 @@ if __name__ == "__main__":
 
     git_repos = []
     # walk the directory tree within the folder where this file is executed
-    for root, directories, files in os.walk('.'):
+    for root, directories, files in os.walk(args.path):
         # check if there is a subfolder called '.git'  in there.
         # if this is the case, this is a git rep
         for subdirectory in directories:
